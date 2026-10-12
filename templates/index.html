@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AURA AI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #131314;
+            --sidebar-bg: #1e1f20;
+            --chat-bg: #131314;
+            --card-bg: #1e1f20;
+            --text-main: #e3e3e3;
+            --text-sub: #c4c7c5;
+            --border-color: #3c4043;
+            --accent-blue: #a8c7fa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button,
+        textarea::-webkit-outer-spin-button,
+        textarea::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 260px;
+            background-color: var(--sidebar-bg);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 16px;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .new-chat-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 14px;
+            transition: 0.2s;
+            width: 100%;
+        }
+
+        .new-chat-btn:hover {
+            background-color: #28292a;
+        }
+
+        .history-list {
+            margin-top: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            overflow-x: visible;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding-right: 4px;
+        }
+
+        .history-item {
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text-sub);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .history-item:hover {
+            background-color: #28292a;
+        }
+
+        .history-item.active {
+            background-color: #2d2e30;
+            color: var(--text-main);
+        }
+
+        .history-item.pinned {
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        /* Menú de tres puntos inteligente (se abre hacia arriba si está abajo) */
+        .menu-container {
+            position: relative;
+            display: none;
+        }
+
+        .history-item:hover .menu-container {
+            display: block;
+        }
+
+        .menu-btn {
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .menu-btn:hover {
+            background-color: #3c4043;
+            color: var(--text-main);
+        }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #28292a;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.7);
+            z-index: 999;
+            width: 140px;
+            overflow: hidden;
+        }
+
+        /* Por defecto se abre hacia abajo, pero si tiene la clase dropup se abre hacia arriba */
+        .dropdown-menu.down {
+            top: 28px;
+        }
+
+        .dropdown-menu.up {
+            bottom: 28px;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--text-main);
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover {
+            background-color: #3c4043;
+        }
+
+        .dropdown-item.delete {
+            color: #ff6b6b;
+        }
+
+        .user-profile {
+            border-top: 1px solid var(--border-color);
+            padding-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .user-badge {
+            background-color: #38393b;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--accent-blue);
+        }
+
+        .auth-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .btn-auth {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .btn-auth:hover {
+            background-color: #28292a;
+        }
+
+        /* Main Chat Area */
+        .main-chat {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background-color: var(--chat-bg);
+            position: relative;
+        }
+
+        .top-header {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo-title {
+            font-weight: 700;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-upgrade-top {
+            background: transparent;
+            border: 1px solid #ffb703;
+            color: #ffb703;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .btn-upgrade-top:hover {
+            background: rgba(255, 183, 3, 0.1);
+        }
+
+        /* Pantalla de bienvenida centrada */
+        .welcome-screen {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            gap: 20px;
+        }
+
+        .welcome-title {
+            font-size: 26px;
+            font-weight: 400;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .welcome-input-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 28px;
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            max-width: 680px;
+            position: relative;
+        }
+
+        .welcome-input-box textarea {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 15px;
+            resize: none;
+            outline: none;
+            max-height: 120px;
+            height: 24px;
+        }
+
+        .welcome-suggestions {
+            display: flex;
+            gap: 20px;
+            margin-top: 8px;
+        }
+
+        .suggestion-chip {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: color 0.2s;
+        }
+
+        .suggestion-chip:hover {
+            color: var(--text-main);
+        }
+
+        /* Contenedor del Chat */
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px 15%;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            display: none;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 80%;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: var(--accent-blue);
+            color: #040e25;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .msg-content {
+            background-color: transparent;
+            padding: 4px 0;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .message.user .msg-content {
+            text-align: right;
+        }
+
+        .chat-image-preview {
+            max-width: 220px;
+            max-height: 220px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            display: block;
+            border: 1px solid var(--border-color);
+            transition: opacity 0.2s;
+        }
+
+        .chat-image-preview:hover {
+            opacity: 0.85;
+        }
+
+        /* Visor de Imagen en Pantalla Completa (Modal) */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 5px 25px rgba(0,0,0,0.8);
+        }
+
+        .close-image-modal {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: #fff;
+            font-size: 35px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* Input Inferior Fijo */
+        .input-container {
+            padding: 10px 15% 20px 15%;
+            background-color: var(--chat-bg);
+            display: none;
+        }
+
+        .input-box {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 8px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            position: relative;
+        }
+
+        .input-box textarea {
+            flex-grow: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            max-height: 100px;
+            height: 24px;
+        }
+
+        .btn-action {
+            background: transparent;
+            border: none;
+            color: var(--text-sub);
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .btn-action:hover {
+            color: var(--text-main);
+        }
+
+        .btn-send {
+            background-color: var(--accent-blue);
+            color: #040e25;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+        }
+
+        .listening {
+            color: #ef4444 !important;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+
+        /* Modal de Planes */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background-color: #1e1f20;
+            border: 1px solid #3c4043;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 850px;
+            padding: 24px;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            color: var(--text-sub);
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .plans-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .plans-grid {
+                grid-template-columns: repeat(1, 1fr);
+            }
+        }
+
+        .plan-card {
+            background: #18191a;
+            border: 1px solid #3c4043;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .plan-card.popular {
+            border: 2px solid #a855f7;
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #a855f7;
+            color: #fff;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+
+        .plan-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .plan-card .price {
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 6px;
+        }
+
+        .plan-card .price span {
+            font-size: 12px;
+            color: var(--text-sub);
+            font-weight: normal;
+        }
+
+        .plan-card p {
+            font-size: 11px;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .plan-card ul {
+            list-style: none;
+            font-size: 12px;
+            color: var(--text-sub);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .plan-card ul li {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .plan-card ul li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+        }
+
+        .btn-plan {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: #fff;
+            transition: 0.2s;
+        }
+
+        .btn-plan.current {
+            background: #2b2c2e;
+            color: var(--text-sub);
+            border-color: #3c4043;
+            cursor: default;
+        }
+
+        .payment-form {
+            display: none;
+            margin-top: 20px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+        }
+
+        .payment-form input {
+            width: 100%;
+            padding: 10px;
+            margin: 6px 0;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            background: #131314;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div>
+            <button class="new-chat-btn" onclick="startNewChat()">
+                <span>+</span> Nuevo chat
+            </button>
+            <div class="history-list" id="historyList"></div>
+        </div>
+
+        <div class="user-profile">
+            <div class="user-info">
+                <div>
+                    <strong id="usernameDisplay">{{ username }}</strong>
+                    <div style="font-size: 11px; color: var(--text-sub);">Plan: <span id="planDisplay">{{ plan }}</span></div>
+                </div>
+                <button class="btn-upgrade-top" onclick="openModal()" style="font-size: 10px; padding: 4px 8px;">Mejorar</button>
+            </div>
+            
+            <div class="auth-actions">
+                {% if username == 'Invitado' %}
+                    <a href="/login" class="btn-auth">Iniciar Sesión / Registrarse</a>
+                {% else %}
+                    <a href="/logout" class="btn-auth" style="color: #ff6b6b;">Cerrar Sesión</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Chat -->
+    <div class="main-chat">
+        <div class="top-header">
+            <div class="logo-title">
+                AURA AI <span class="user-badge" id="headerBadge">Versión Estándar</span>
+            </div>
+            <button class="btn-upgrade-top" onclick="openModal()">⭐ Cambiar a Plan Superior</button>
+        </div>
+
+        <!-- Pantalla de Bienvenida Centrada -->
+        <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-title">Me alegro de verte, <span id="welcomeUsername">{{ username }}</span>.</div>
+            <div class="welcome-input-box">
+                <button class="btn-action" title="Subir archivo o imagen" onclick="document.getElementById('imageInput').click()">＋</button>
+                <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImage(event)">
+                
+                <button class="btn-action" id="welcomeMicBtn" title="Dictar por voz" onclick="toggleSpeechRecognition('welcomePromptInput', 'welcomeMicBtn')">🎙️</button>
+                
+                <textarea id="welcomePromptInput" placeholder="Pregunta lo que quieras" onkeydown="handleWelcomeKeyDown(event)"></textarea>
+                
+                <button class="btn-action btn-send" onclick="sendWelcomePrompt()">➤</button>
+            </div>
+            <div class="welcome-suggestions">
+                <button class="suggestion-chip" onclick="useSuggestion('Crear una imagen o sticker')">🖼️ Crear una imagen o sticker</button>
+                <button class="suggestion-chip" onclick="useSuggestion('Escribe o edita')">✏️ Escribe o edita</button>
+                <button class="suggestion-chip" onclick="useSuggestion('Busca en la web')">🌐 Busca en la web</button>
+            </div>
+        </div>
+
+        <!-- Contenedor del Chat -->
+        <div class="chat-container" id="chatContainer"></div>
+
+        <!-- Input Inferior Fijo -->
+        <div class="input-container" id="inputContainer">
+            <div class="input-box">
+                <button class="btn-action" title="Subir archivo o imagen" onclick="document.getElementById('imageInput').click()">＋</button>
+                <button class="btn-action" id="chatMicBtn" title="Dictar por voz" onclick="toggleSpeechRecognition('promptInput', 'chatMicBtn')">🎙️</button>
+                
+                <textarea id="promptInput" placeholder="Escribe un mensaje, describe tu foto o pégala con Ctrl + V..." onkeydown="handleKeyDown(event)"></textarea>
+                
+                <button class="btn-action btn-send" onclick="sendPrompt()">➤</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visor Modal de Imágenes -->
+    <div class="image-modal" id="imageModal" onclick="closeImageModal()">
+        <span class="close-image-modal">&times;</span>
+        <img id="modalImage" src="" alt="Imagen ampliada">
+    </div>
+
+    <!-- Modal de Planes -->
+    <div class="modal" id="plansModal">
+        <div class="modal-content">
+            <button class="close-modal" onclick="closeModal()">&times;</button>
+            <h2 style="display: flex; align-items: center; gap: 8px;">⭐ Planes y Suscripciones AURA AI</h2>
+            <p style="font-size: 12px; color: var(--text-sub); margin-top: 4px;">Selecciona tu plan y paga de forma segura con tarjeta de crédito/débito o PayPal.</p>
+
+            <div class="plans-grid">
+                <div class="plan-card">
+                    <div>
+                        <h3>Gratis</h3>
+                        <div class="price">$0 <span>/mes</span></div>
+                        <p>Para consultas básicas y uso diario.</p>
+                        <ul>
+                            <li>Modelo estándar</li>
+                            <li>5 archivos diarios</li>
+                            <li>Historial estándar</li>
+                        </ul>
+                    </div>
+                    <button class="btn-plan" id="btn-Gratis" onclick="selectFreePlan()">Plan Actual</button>
+                </div>
+
+                <div class="plan-card">
+                    <div>
+                        <h3>Go</h3>
+                        <div class="price">$4.50 <span>/mes</span></div>
+                        <p>Respuestas rápidas y más archivos.</p>
+                        <ul>
+                            <li>Respuestas más rápidas</li>
+                            <li>25 archivos diarios</li>
+                            <li>Soporte prioritario</li>
+                        </ul>
+                    </div>
+                    <button class="btn-plan" id="btn-Go" style="background:#a8c7fa; color:#040e25; border:none;" onclick="checkoutPlan('Go', 4.50)">Elegir Go</button>
+                </div>
+
+                <div class="plan-card popular">
+                    <span class="popular-badge">Más Popular</span>
+                    <div>
+                        <h3>Plus</h3>
+                        <div class="price">$10.50 <span>/mes</span></div>
+                        <p>Modelos avanzados y archivos ilimitados.</p>
+                        <ul>
+                            <li>Modelos avanzados de visión</li>
+                            <li>Archivos y fotos ilimitadas</li>
+                            <li>Historial en la nube</li>
+                        </ul>
+                    </div>
+                    <button class="btn-plan" id="btn-Plus" style="background:#a8c7fa; color:#040e25; border:none;" onclick="checkoutPlan('Plus', 10.50)">Elegir Plus</button>
+                </div>
+
+                <div class="plan-card">
+                    <div>
+                        <h3>Pro</h3>
+                        <div class="price">$50.00 <span>/mes</span></div>
+                        <p>Potencia máxima y IA sin límites.</p>
+                        <ul>
+                            <li>Acceso total a IA sin límites</li>
+                            <li>Memoria y contexto masivo</li>
+                            <li>Atención prioritaria 24/7</li>
+                        </ul>
+                    </div>
+                    <button class="btn-plan" id="btn-Pro" style="background:#a8c7fa; color:#040e25; border:none;" onclick="checkoutPlan('Pro', 50.00)">Elegir Pro</button>
+                </div>
+            </div>
+
+            <div class="payment-form" id="paymentForm">
+                <h3 id="paymentTitle" style="color: var(--accent-blue); margin-bottom: 8px;">Pagar Suscripción</h3>
+                <input type="text" id="cardHolder" placeholder="Nombre en la tarjeta" required>
+                <input type="text" id="cardNumber" placeholder="Número de Tarjeta (o cuenta de PayPal)" required>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" placeholder="MM/AA" style="width: 50%;">
+                    <input type="text" placeholder="CVC" style="width: 50%;">
+                </div>
+                <button class="btn-plan" style="width: 100%; margin-top: 10px; padding: 10px; background:#a8c7fa; color:#040e25; border:none;" onclick="confirmPayment()">Confirmar y Activar Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = 'session_' + Date.now();
+        let selectedImage = null;
+        let selectedPlanToBuy = '';
+        let currentActivePlan = "{{ plan }}";
+        let pinnedChats = JSON.parse(localStorage.getItem('pinned_chats') || '[]');
+
+        let recognition = null;
+        let isListening = false;
+
+        window.onload = function() {
+            fetchHistory();
+            updatePlanUI(currentActivePlan);
+            setupSpeechRecognition();
+
+            window.addEventListener('click', function() {
+                document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            });
+        };
+
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return;
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'es-ES';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+
+            recognition.onresult = function(event) {
+                let transcript = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                }
+                const activeInput = document.getElementById('welcomeScreen').style.display !== 'none' 
+                    ? document.getElementById('welcomePromptInput') 
+                    : document.getElementById('promptInput');
+                
+                activeInput.value = transcript;
+            };
+
+            recognition.onend = function() {
+                isListening = false;
+                document.getElementById('welcomeMicBtn').classList.remove('listening');
+                document.getElementById('chatMicBtn').classList.remove('listening');
+            };
+        }
+
+        function toggleSpeechRecognition(inputId, btnId) {
+            if (!recognition) {
+                alert('Tu navegador no soporta reconocimiento de voz.');
+                return;
+            }
+
+            const btn = document.getElementById(btnId);
+            if (isListening) {
+                recognition.stop();
+                isListening = false;
+                btn.classList.remove('listening');
+            } else {
+                recognition.start();
+                isListening = true;
+                btn.classList.add('listening');
+            }
+        }
+
+        function switchToChatLayout() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatContainer').style.display = 'flex';
+            document.getElementById('inputContainer').style.display = 'block';
+        }
+
+        function useSuggestion(text) {
+            const input = document.getElementById('welcomePromptInput');
+            input.value = text;
+            input.focus();
+        }
+
+        function openModal() {
+            document.getElementById('plansModal').style.display = 'flex';
+            updatePlanUI(currentActivePlan);
+        }
+
+        function closeModal() {
+            document.getElementById('plansModal').style.display = 'none';
+            document.getElementById('paymentForm').style.display = 'none';
+        }
+
+        function checkoutPlan(planName, price) {
+            if (currentActivePlan === planName) return;
+            selectedPlanToBuy = planName;
+            document.getElementById('paymentTitle').innerText = `Pagar Plan ${planName} - $${price}/mes`;
+            document.getElementById('paymentForm').style.display = 'block';
+        }
+
+        async function selectFreePlan() {
+            if (currentActivePlan === 'Gratis') return;
+            await updatePlan('Gratis');
+        }
+
+        async function confirmPayment() {
+            const card = document.getElementById('cardNumber').value;
+            if(!card) {
+                alert('Por favor ingresa un número de tarjeta o cuenta de PayPal.');
+                return;
+            }
+            await updatePlan(selectedPlanToBuy);
+            alert(`¡Pago aceptado! Tu plan actual ahora es ${selectedPlanToBuy}.`);
+            closeModal();
+        }
+
+        async function updatePlan(planName) {
+            const response = await fetch('/api/update-plan', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ plan: planName })
+            });
+            const data = await response.json();
+            if(data.success) {
+                currentActivePlan = data.plan;
+                document.getElementById('planDisplay').innerText = data.plan;
+                updatePlanUI(data.plan);
+            }
+        }
+
+        function updatePlanUI(activePlan) {
+            const plans = ['Gratis', 'Go', 'Plus', 'Pro'];
+            plans.forEach(plan => {
+                const btn = document.getElementById(`btn-${plan}`);
+                if (!btn) return;
+
+                if (plan === activePlan) {
+                    btn.innerText = "Plan Actual";
+                    btn.className = "btn-plan current";
+                    btn.style.background = "#2b2c2e";
+                    btn.style.color = "#c4c7c5";
+                    btn.style.border = "1px solid #3c4043";
+                } else {
+                    btn.innerText = plan === 'Gratis' ? "Volver a Gratis" : `Elegir ${plan}`;
+                    btn.className = "btn-plan";
+                    if (plan !== 'Gratis') {
+                        btn.style.background = "#a8c7fa";
+                        btn.style.color = "#040e25";
+                        btn.style.border = "none";
+                    } else {
+                        btn.style.background = "transparent";
+                        btn.style.color = "#fff";
+                        btn.style.border = "1px solid #3c4043";
+                    }
+                }
+            });
+        }
+
+        function startNewChat() {
+            currentSessionId = 'session_' + Date.now();
+            document.getElementById('chatContainer').innerHTML = '';
+            document.getElementById('chatContainer').style.display = 'none';
+            document.getElementById('inputContainer').style.display = 'none';
+            document.getElementById('welcomeScreen').style.display = 'flex';
+            document.getElementById('welcomePromptInput').value = '';
+            selectedImage = null;
+            fetchHistory();
+        }
+
+        function handleWelcomeKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendWelcomePrompt();
+            }
+        }
+
+        async function sendWelcomePrompt() {
+            const input = document.getElementById('welcomePromptInput');
+            const text = input.value.trim();
+            if (!text && !selectedImage) return;
+
+            switchToChatLayout();
+            appendMessage('user', text || 'Analiza esta imagen', selectedImage);
+            input.value = '';
+
+            await executeSend();
+        }
+
+        function handleKeyDown(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendPrompt();
+            }
+        }
+
+        function handleImage(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    selectedImage = evt.target.result;
+                    switchToChatLayout();
+                    appendMessage('user', 'Imagen adjunta:', selectedImage);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        document.addEventListener('paste', function(e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(evt) {
+                        selectedImage = evt.target.result;
+                        switchToChatLayout();
+                        appendMessage('user', 'Imagen pegada:', selectedImage);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+
+        function appendMessage(role, text, imageUrl = null) {
+            const container = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${role}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = 'avatar';
+            avatar.innerText = role === 'user' ? 'U' : 'A';
+
+            const content = document.createElement('div');
+            content.className = 'msg-content';
+
+            if (imageUrl) {
+                const img = document.createElement('img');
+                img.src = imageUrl;
+                img.className = 'chat-image-preview';
+                img.onclick = () => openImageModal(imageUrl);
+                content.appendChild(img);
+            }
+
+            if (text && text !== 'Imagen adjunta:' && text !== 'Imagen pegada:') {
+                const textSpan = document.createElement('div');
+                textSpan.innerText = text;
+                content.appendChild(textSpan);
+            }
+
+            msgDiv.appendChild(avatar);
+            msgDiv.appendChild(content);
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function openImageModal(imgSrc) {
+            document.getElementById('modalImage').src = imgSrc;
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function closeImageModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        async function sendPrompt() {
+            const input = document.getElementById('promptInput');
+            const text = input.value.trim();
+            if (!text && !selectedImage) return;
+
+            appendMessage('user', text || 'Analiza esta imagen', selectedImage);
+            input.value = '';
+
+            await executeSend();
+        }
+
+        async function executeSend() {
+            const messages = [];
+            document.querySelectorAll('#chatContainer .message').forEach(el => {
+                const isUser = el.classList.contains('user');
+                const textEl = el.querySelector('.msg-content div');
+                const msgText = textEl ? textEl.innerText : (el.querySelector('img') ? '[Imagen adjunta]' : '');
+                messages.push({ role: isUser ? 'user' : 'bot', content: msgText });
+            });
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        session_id: currentSessionId,
+                        history: messages,
+                        image_data: selectedImage
+                    })
+                });
+                const data = await res.json();
+                if(data.response) {
+                    appendMessage('bot', data.response);
+                    fetchHistory();
+                }
+            } catch(e) {
+                appendMessage('bot', 'Ocurrió un error al procesar tu solicitud.');
+            }
+            selectedImage = null;
+        }
+
+        async function fetchHistory() {
+            try {
+                const res = await fetch('/api/history');
+                const data = await res.json();
+                const list = document.getElementById('historyList');
+                list.innerHTML = '';
+
+                let chatEntries = Object.entries(data);
+                chatEntries.sort((a, b) => {
+                    const aPinned = pinnedChats.includes(a[0]);
+                    const bPinned = pinnedChats.includes(b[0]);
+                    if (aPinned && !bPinned) return -1;
+                    if (!aPinned && bPinned) return 1;
+                    return 0;
+                });
+
+                const totalChats = chatEntries.length;
+
+                chatEntries.forEach(([id, chatObj], index) => {
+                    const isPinned = pinnedChats.includes(id);
+                    const item = document.createElement('div');
+                    item.className = `history-item ${id === currentSessionId ? 'active' : ''} ${isPinned ? 'pinned' : ''}`;
+                    
+                    // Si está en la mitad inferior de la lista, el menú se abre hacia arriba automáticamente
+                    const openDirection = index >= totalChats - 2 && totalChats > 2 ? 'up' : 'down';
+
+                    item.innerHTML = `
+                        <span onclick="loadChat('${id}')" style="flex-grow:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${chatObj.title}">
+                            ${isPinned ? '📌 ' : ''}${chatObj.title}
+                        </span>
+                        <div class="menu-container">
+                            <button class="menu-btn" onclick="toggleMenu(event, '${id}')">⋮</button>
+                            <div class="dropdown-menu ${openDirection}" id="menu_${id}">
+                                <button class="dropdown-item" onclick="togglePinChat(event, '${id}')">${isPinned ? 'Desanclar' : 'Anclar chat'}</button>
+                                <button class="dropdown-item delete" onclick="deleteChat(event, '${id}')">Eliminar</button>
+                            </div>
+                        </div>
+                    `;
+                    list.appendChild(item);
+                });
+            } catch(e){}
+        }
+
+        function toggleMenu(event, id) {
+            event.stopPropagation();
+            const menu = document.getElementById(`menu_${id}`);
+            const isOpen = menu.classList.contains('show');
+            
+            document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+            
+            if (!isOpen) {
+                menu.classList.add('show');
+            }
+        }
+
+        function togglePinChat(event, id) {
+            event.stopPropagation();
+            if (pinnedChats.includes(id)) {
+                pinnedChats = pinnedChats.filter(chatId => chatId !== id);
+            } else {
+                pinnedChats.push(id);
+            }
+            localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats));
+            fetchHistory();
+        }
+
+        function loadChat(id) {
+            currentSessionId = id;
+            fetch('/api/history').then(r => r.json()).then(data => {
+                if(data[id]) {
+                    switchToChatLayout();
+                    const container = document.getElementById('chatContainer');
+                    container.innerHTML = '';
+                    data[id].messages.forEach(m => {
+                        appendMessage(m.role === 'user' ? 'user' : 'bot', m.content);
+                    });
+                    fetchHistory();
+                }
+            });
+        }
+
+        async function deleteChat(event, id) {
+            event.stopPropagation();
+            await fetch('/api/chat/delete', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ session_id: id })
+            });
+            pinnedChats = pinnedChats.filter(chatId => chatId !== id);
+            localStorage.setItem('pinned_chats', JSON.stringify(pinnedChats));
+
+            if(currentSessionId === id) {
+                startNewChat();
+            } else {
+                fetchHistory();
+            }
+        }
+    </script>
+</body>
+</html>
